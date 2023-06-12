@@ -1,0 +1,152 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>User Information</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .small-input {
+            width: 200px;
+            height: 30px;
+            font-size: 14px;
+        }
+    </style>
+    <link href="~/css/style.css" rel="stylesheet" />
+    <link href="~/css/site.css" rel="stylesheet" />
+</head>
+<body>
+    <h1>Doğum Haritası</h1>
+    <div class="form-container">
+        <form id="astro-form">
+            <div class="form-group">
+                <label for="name">İsim:</label>
+                <input type="text" id="name" class="small-input" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="birthdate">Doğum Tarihi:</label>
+                <input type="date" id="birthdate" name="birthdate" required>
+            </div>
+            <div class="form-group">
+                <label for="birthdate">Doğum Saati:</label>
+                <input type="time" id="birthDateClock" class="small-input" name="birthDateClock" required>
+            </div>
+            <div>
+                <label for="city">Şehir:</label>
+                <input type="text" id="city" />
+            </div>
+            <div>
+                <label for="country">Ülke:</label>
+                <input type="text" id="country" />
+            </div>
+            <button id="getCoordinates">Koordinatları Getir</button>
+            <button type="submit">Gönder</button>
+        </form>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            // Metin alanını ufaltma
+            $('#name').css({
+                'width': '150px',
+                'height': '20px',
+                'font-size': '12px'
+            });
+            $('#location').css({
+                'width': '150px',
+                'height': '20px',
+                'font-size': '12px'
+            });
+            $('#birthdate').css({
+                'width': '150px',
+                'height': '20px',
+                'font-size': '12px'
+            });
+            $('#birthDateClock').css({
+                'width': '150px',
+                'height': '20px',
+                'font-size': '12px'
+            });
+            $('#city').css({
+                'width': '150px',
+                'height': '20px',
+                'font-size': '12px'
+            });
+            $('#country').css({
+                'width': '150px',
+                'height': '20px',
+                'font-size': '12px'
+            });
+        });
+        
+        $(document).ready(function () {
+            $('#saveBtn').click(function () {
+                var name = $('#name').val();
+                var birthdate = $('#birthdate').val();
+                var city = $('#city').val();
+                var country = $('#country').val();
+                var apiKey = '85e390d39ed941ba835e592e609b00a2';
+
+                $.get(`https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(city)},${encodeURIComponent(country)}&key=${apiKey}`, function (data) {
+                    if (data && data.results && data.results.length > 0) {
+                        var location = data.results[0].geometry;
+                        var latitude = location.lat;
+                        var longitude = location.lng;
+
+                        console.log('Oldu');
+                    } else {
+                        alert('Olmadı');
+                    }
+                
+                });
+
+
+                // Verileri sunucuya gönder
+                $.ajax({
+                    url: '/Home/SaveData',
+                    type: 'POST',
+                    data: {
+                        name: name,
+                        birthdate: birthdate,
+                        location: location
+                    },
+                    success: function () {
+                        // Veri gönderimi başarılı oldu, sonuçları göster
+                        $('#formContainer').hide();
+                        $('#resultName').text(name);
+                        $('#resultBirthdate').text(birthdate);
+                        $('#resultLocation').text(location);
+                        $('#resultContainer').show();
+                    },
+                    error: function () {
+                        alert('Bir hata oluştu!');
+                    }
+                });
+            });
+        });
+
+
+
+        //$(document).ready(function () {
+        //    $('#getCoordinates').on('click', function () {
+        //        var city = $('#city').val();
+        //        var country = $('#country').val();
+
+        //        var apiKey = '85e390d39ed941ba835e592e609b00a2'; // OpenCage API anahtarınızı buraya yazın
+
+        //        $.get(`https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(city)},${encodeURIComponent(country)}&key=${apiKey}`, function (data) {
+        //            if (data && data.results && data.results.length > 0) {
+        //                var location = data.results[0].geometry;
+        //                var latitude = location.lat;
+        //                var longitude = location.lng;
+
+        //                alert('Latitude: ' + latitude + '\nLongitude: ' + longitude);
+        //            } else {
+        //                alert('Koordinatlar alınamadı.');
+        //            }
+        //        });
+        //    });
+        //});
+        
+    </script>
+</body>
+</html>
