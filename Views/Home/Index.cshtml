@@ -1,152 +1,210 @@
 ﻿<!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8" />
-    <title>User Information</title>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <meta charset="utf-8">
+    <title>Mapbox Haritalama</title>
     <style>
-        .small-input {
-            width: 200px;
-            height: 30px;
-            font-size: 14px;
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            height: calc(100% - 40px); /* Buton yüksekliği düşüldü */
+        }
+
+        #button {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1;
+        }
+        .mapboxgl-popup {
+            max-width: 500px;
+            font-family: Arial, sans-serif;
+            border-radius: 4px;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            background-color: #fff;
+            overflow: auto;
+            color: #333;
+        }
+
+            /* Başlık Stili */
+            .mapboxgl-popup h3 {
+                margin-top: 0;
+                margin-bottom: 10px;
+                font-size: 16px;
+            }
+
+            /* Etiket ve Giriş Kutusu Stili */
+            .mapboxgl-popup label {
+                display: block;
+                font-weight: bold;
+                margin-bottom: 5px;
+            }
+
+            .mapboxgl-popup input[type="text"],
+            .mapboxgl-popup textarea {
+                width: 90%;
+                padding: 10px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                margin-bottom: 10px;
+            }
+
+        /* Kapatma Düğmesi Stili */
+        .mapboxgl-popup-close-button {
+            visibility: hidden;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+
+            .mapboxgl-popup-close-button:hover {
+                background-color: #d00;
+            }
+
+        /* Kaydet Butonu Stili */
+        .mapboxgl-popup-save-button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .mapboxgl-popup-close-button-1 {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            /* Diğer stiller */
+        }
+
+            .mapboxgl-popup-save-button:hover {
+                background-color: #45a049;
+            }
+
+        /* Fotoğraf İkonu Stili */
+        .mapboxgl-popup-photo-icon {
+            font-size: 20px;
+            color: #888;
+            margin-right: 5px;
         }
     </style>
-    <link href="~/css/style.css" rel="stylesheet" />
-    <link href="~/css/site.css" rel="stylesheet" />
 </head>
 <body>
-    <h1>Doğum Haritası</h1>
-    <div class="form-container">
-        <form id="astro-form">
-            <div class="form-group">
-                <label for="name">İsim:</label>
-                <input type="text" id="name" class="small-input" name="name" required>
-            </div>
-            <div class="form-group">
-                <label for="birthdate">Doğum Tarihi:</label>
-                <input type="date" id="birthdate" name="birthdate" required>
-            </div>
-            <div class="form-group">
-                <label for="birthdate">Doğum Saati:</label>
-                <input type="time" id="birthDateClock" class="small-input" name="birthDateClock" required>
-            </div>
-            <div>
-                <label for="city">Şehir:</label>
-                <input type="text" id="city" />
-            </div>
-            <div>
-                <label for="country">Ülke:</label>
-                <input type="text" id="country" />
-            </div>
-            <button id="getCoordinates">Koordinatları Getir</button>
-            <button type="submit">Gönder</button>
-        </form>
-    </div>
+    <div id="map"></div>
+    <button id="button" onclick="addMarker()">Konum</button>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.4.1/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.4.1/mapbox-gl.css" rel="stylesheet" />
 
     <script>
-        $(document).ready(function () {
-            // Metin alanını ufaltma
-            $('#name').css({
-                'width': '150px',
-                'height': '20px',
-                'font-size': '12px'
-            });
-            $('#location').css({
-                'width': '150px',
-                'height': '20px',
-                'font-size': '12px'
-            });
-            $('#birthdate').css({
-                'width': '150px',
-                'height': '20px',
-                'font-size': '12px'
-            });
-            $('#birthDateClock').css({
-                'width': '150px',
-                'height': '20px',
-                'font-size': '12px'
-            });
-            $('#city').css({
-                'width': '150px',
-                'height': '20px',
-                'font-size': '12px'
-            });
-            $('#country').css({
-                'width': '150px',
-                'height': '20px',
-                'font-size': '12px'
-            });
+        mapboxgl.accessToken = 'pk.eyJ1Ijoic2F5aW5icmFoaW0iLCJhIjoiY2s3Z2pya3QwMDBmbjNkbnI2OG1meXhrdSJ9.xdwkaHjniYxboYT-vkrQzA';
+        var selectedPoint = null;
+        var marker;
+
+        var map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v11',
+            center: [32.8541, 39.9208], // Ankara'nın merkezi koordinatları
+            zoom: 10
         });
-        
-        $(document).ready(function () {
-            $('#saveBtn').click(function () {
-                var name = $('#name').val();
-                var birthdate = $('#birthdate').val();
-                var city = $('#city').val();
-                var country = $('#country').val();
-                var apiKey = '85e390d39ed941ba835e592e609b00a2';
-
-                $.get(`https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(city)},${encodeURIComponent(country)}&key=${apiKey}`, function (data) {
-                    if (data && data.results && data.results.length > 0) {
-                        var location = data.results[0].geometry;
-                        var latitude = location.lat;
-                        var longitude = location.lng;
-
-                        console.log('Oldu');
-                    } else {
-                        alert('Olmadı');
-                    }
-                
-                });
-
-
-                // Verileri sunucuya gönder
-                $.ajax({
-                    url: '/Home/SaveData',
-                    type: 'POST',
-                    data: {
-                        name: name,
-                        birthdate: birthdate,
-                        location: location
-                    },
-                    success: function () {
-                        // Veri gönderimi başarılı oldu, sonuçları göster
-                        $('#formContainer').hide();
-                        $('#resultName').text(name);
-                        $('#resultBirthdate').text(birthdate);
-                        $('#resultLocation').text(location);
-                        $('#resultContainer').show();
-                    },
-                    error: function () {
-                        alert('Bir hata oluştu!');
-                    }
-                });
-            });
+        var popup = new mapboxgl.Popup({
+            closeButton: true, // Kapatma düğmesini göster
+            closeOnClick: false // Popup dışına tıklandığında kapanmasını engelle
         });
+        function addMarker() {
+            // Nokta eklemek için Marker kullanımı
+            button.disabled = true;                      
+
+            map.on('click', function (e) {
+                // Haritaya tıklandığında nokta eklenir
+                if (button.disabled == true) {
+                    //var marker = new mapboxgl.Marker()
+                    //    .setLngLat(map.getCenter())
+                    //    .addTo(map);
+                    var coordinates = e.lngLat;
+                    if (popup.isOpen()) {
+                        popup.remove();
+                        return;
+                    }
+                    else {
+                        addPopup(e.lngLat);
+                    }
+                   
+                    //saveData();
+
+                     marker = new mapboxgl.Marker()
+                        .setLngLat(coordinates)
+                        .addTo(map);
+
+                    selectedPoint = {
+                        coordinates: coordinates,
+                    };
 
 
+                    
+                    button.disabled = false;
 
-        //$(document).ready(function () {
-        //    $('#getCoordinates').on('click', function () {
-        //        var city = $('#city').val();
-        //        var country = $('#country').val();
+                }
+              
+            });
+        }
+        function addPopup(LongLat){
+            var coordinates = LongLat;
 
-        //        var apiKey = '85e390d39ed941ba835e592e609b00a2'; // OpenCage API anahtarınızı buraya yazın
+            var content = '<div class="popup-content">' +
+                '<h3>Mekan Bilgileri</h3>' +
+                '<label for="name">İsim:</label>' +
+                '<input type="text" id="name" required>' +
+                '<label for="price">Fiyat:</label>' +
+                '<input type="text" id="price" required>' +
+                '<label for="food">Neler Yedik:</label>' +
+                '<textarea id="food" rows="3"></textarea>' +
+                '<div>' +
+                '<label for="photo">Fotoğraf:</label>' +
+                '<input type="file" id="photo">' +
+                '<span class="mapboxgl-popup-photo-icon">&#128247;</span>' +
+                '</div>' +
+                '<button class="mapboxgl-popup-save-button" onclick="saveData()">Kaydet</button>' +
+                '<button class="mapboxgl-popup-close-button-1" onclick="closePopup()">&#10006;</button>' +
+                '</div>';
 
-        //        $.get(`https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(city)},${encodeURIComponent(country)}&key=${apiKey}`, function (data) {
-        //            if (data && data.results && data.results.length > 0) {
-        //                var location = data.results[0].geometry;
-        //                var latitude = location.lat;
-        //                var longitude = location.lng;
+            popup.setLngLat(coordinates)
+                .setHTML(content)
+                .addTo(map);
+        }
 
-        //                alert('Latitude: ' + latitude + '\nLongitude: ' + longitude);
-        //            } else {
-        //                alert('Koordinatlar alınamadı.');
-        //            }
-        //        });
-        //    });
-        //});
-        
+        function closePopup() {
+            
+            if (selectedPoint !== null && selectedPoint.coordinates === marker.coordinates) {
+                // Marker'ı haritadan kaldır
+                marker.remove();
+            }
+            popup.remove();
+        }
+
+        function saveData() {
+            var name = document.getElementById('name').value;
+            var price = document.getElementById('price').value;
+            var food = document.getElementById('food').value;
+            var photo = document.getElementById('photo').files[0];
+
+            // Değerleri kullanarak isteğe bağlı olarak bir veritabanına veya başka bir yere kaydedebilirsiniz.
+
+            // Popup'ı kapat
+            popup.remove();
+        }
+
+            // Harita üzerinde şehir sınırlarını ve yollarını göstermek için uygun verileri kullanabilirsiniz.
+            // Örneğin GeoJSON veya bir harita servisinden alınan verileri kullanabilirsiniz.
+            // Verileri haritaya eklemek için map.addLayer veya map.addSource yöntemlerini kullanabilirsiniz.
+            // Ayrıntılı bir şekilde belirli bir veri kaynağına veya veri formatına bağlı olarak yardımcı olabilirim.
+
     </script>
 </body>
 </html>
